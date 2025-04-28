@@ -1,0 +1,7 @@
+node_modules/
+.env
+.wwebjs_auth/
+.wwebjs_cache/
+cookies.json
+package-lock.kson
+saveVideo.js
