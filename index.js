@@ -16,7 +16,8 @@ const path = require('path');
 const globalVar = require("./globalVar.js");
 const { addBooking } = require("./scripts/addBooking.js");
 const { depo, kaspiText, startMessage } = require("./const/messages.js");
-const { log } = require("console");
+const express = require("express");
+const cors = require("cors");
 
 mongoose
     .connect("mongodb://localhost:27017/tapToLink")
@@ -690,6 +691,12 @@ const gptResponse = async (text, lastMessages, prompt) => {
 client.initialize();
 
 const app = express();
+app.use(express.json());
+app.use(
+    cors({
+        origin: "*",
+    })
+);
 
 app.post("/clientNumber", async (req, res) => {
     const { phone } = req.body;
