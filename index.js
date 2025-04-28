@@ -16,6 +16,7 @@ const path = require('path');
 const globalVar = require("./globalVar.js");
 const { addBooking } = require("./scripts/addBooking.js");
 const { depo, kaspiText, startMessage } = require("./const/messages.js");
+const { log } = require("console");
 
 mongoose
     .connect("mongodb://localhost:27017/tapToLink")
@@ -109,6 +110,8 @@ client.on("message", async (msg) => {
     const chatId = msg.from;
     const clientName = msg._data.notifyName
     const message = msg.body;
+    console.log("message", message);
+    console.log("chatId", chatId);
     
     // let user = await User.findOne({ phone: chatId }) || new User({ phone: chatId});
     let user = await User.findOne({ phone: chatId })
@@ -685,3 +688,15 @@ const gptResponse = async (text, lastMessages, prompt) => {
 };
 
 client.initialize();
+
+const app = express();
+
+app.post("/clientNumber", async (req, res) => {
+    const { phone } = req.body;
+    const answer = await client.sendMessage(phone, "Hello");
+    res.send(answer);
+});
+
+app.listen(5000, () => {
+    console.log("Server is running on port 5000");
+});
