@@ -1,7 +1,21 @@
+# Зависимости
 node_modules/
+npm-debug.log
+yarn-error.log
+
+# Переменные окружения
 .env
+
+# Кеш и временные файлы
 .wwebjs_auth/
 .wwebjs_cache/
-cookies.json
-package-lock.kson
-saveVideo.js
+.tmp/
+.DS_Store
+
+# Логи
+logs/
+*.log
+
+# Файлы сессий и cookies
+src/cookies.json
+*.session.json

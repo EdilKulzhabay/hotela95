@@ -2,7 +2,6 @@ const { getBrowser } = require("./scripts/puppeteerManager");
 const fs = require('fs')
 const globalCookies = require("./globalCookies");
 const { default: axios } = require("axios");
-// require("dotenv").config();
 
 const COOKIES_PATH = './cookies.json';
 

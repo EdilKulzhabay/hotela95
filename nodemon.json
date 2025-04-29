@@ -1,4 +1,6 @@
 {
-    "ignore": ["cookies.json"]
-  }
-  
+  "watch": ["src/"],
+  "ext": "js,json",
+  "ignore": ["src/node_modules/*", "node_modules/*", "src/cookies.json"],
+  "delay": "2500"
+} 

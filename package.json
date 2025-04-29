@@ -1,15 +1,20 @@
 {
-  "name": "taptolink",
+  "name": "hotel-a95-bot",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "WhatsApp бот для бронирования апартаментов",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "nodemon --ignore cookies.json index.js"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
   },
-  "keywords": [],
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "hotel",
+    "booking"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "axios": "^1.7.9",
     "cors": "^2.8.5",
