@@ -18,7 +18,7 @@ const client = createWhatsAppClient();
 // Инициализация Express сервера
 const app = express();
 // app.use(express.json());
-app.use(bodyParser.text({ type: '*/*' }))
+app.use(bodyParser.json());
 app.use(cors({ origin: "*" }));
 
 // Предоставление моделей и клиента WhatsApp для роутов
