@@ -339,12 +339,25 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
         switch (data.type) {
             case 1: // Обработка запроса на бронирование с датами
                 try {
-                    const [year, month, day] = data.checkin.split("-");
-                    const [beginYear, beginMonth, beginDay] = user?.bookingDate?.startDate?.split("-");
-                    const beginDate = `${beginDay}.${beginMonth}.${beginYear}` || `${day}.${month}.${year}`;
-                    const [year2, month2, day2] = data.checkout.split("-");
-                    const [endYear, endMonth, endDay] = user?.bookingDate?.endDate?.split("-");
-                    const endDate = `${endDay}.${endMonth}.${endYear}` || `${day2}.${month2}.${year2}`;
+                    let beginDate = "";
+                    let endDate = "";
+
+                    if (user?.bookingDate?.startDate) {
+                        const [year, month, day] = user?.bookingDate?.startDate?.split("-");
+                        beginDate = `${day}.${month}.${year}`;
+                    } else {
+                        const [year, month, day] = data.checkin.split("-");
+                        beginDate = `${day}.${month}.${year}`;
+                    }
+
+                    if (user?.bookingDate?.endDate) {
+                        const [year, month, day] = user?.bookingDate?.endDate?.split("-");
+                        endDate = `${day}.${month}.${year}`;
+                    } else {
+                        const [year, month, day] = data.checkout.split("-");
+                        endDate = `${day}.${month}.${year}`;
+                    }
+
 
                     // Получаем свободные квартиры
                     const apartmentsResponse = await getAvailableApartments(beginDate, endDate, data.guests);
