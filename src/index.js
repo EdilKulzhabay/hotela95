@@ -43,71 +43,41 @@ client.on("message", async (msg) => {
 app.post("/api/test", async (req, res) => {
     try {
         const { phone, date, whatsNum } = req.body;
-
         console.log("req.body = ", req.body);
-        
         if (!phone || !date) {
             return res.status(400).json({ success: false, error: "Не все поля заполнены" });
         }
 
-        // Получаем форматированную дату через GPT
+        // Форматирование даты через GPT
         const today = new Date().toISOString().split('T')[0];
         const prompt = `Сегодня ${today}. Преобразуй дату в формат YYYY-MM-DD`;
         const formattedDate = await gptResponse(date, [], prompt);
 
-        console.log("formattedDate = ", formattedDate);
-        
-        
-        // Определяем номер телефона для поиска/сохранения
-        const phoneNumber = whatsNum || phone;
-        // Форматируем номер телефона, оставляя только цифры
-        const formattedWhatsNum = whatsNum ? whatsNum.replace(/\D/g, '') : null;
-        
-        // Если номер начинается с 8, заменяем на 7
-        const normalizedWhatsNum = formattedWhatsNum ? 
-            (formattedWhatsNum.startsWith('8') ? '7' + formattedWhatsNum.slice(1) : formattedWhatsNum) : null;
+        // Нормализация телефона
+        const rawNum = whatsNum || phone;
+        const digits = rawNum.replace(/\D/g, '');
+        const normalized = digits.startsWith("8") ? "7" + digits.slice(1) : digits;
+        const phoneKey = `${normalized}@c.us`;
 
-        // Ищем или создаем пользователя
-        let user = await User.findOne({ phone: `${normalizedWhatsNum}@c.us` });
-        
-        if (user) {
-            // Обновляем существующего пользователя
-            user.bookingDate = {
-                ...user.bookingDate,
-                startDate: formattedDate
-            };
-            await user.save();
-        } else {
-            // Создаем нового пользователя
-            user = await User.create({
-                phone: `${phoneNumber}@c.us`,
-                bookingDate: {
-                    startDate: formattedDate
-                }
-            });
-        }
-
-        console.log("user = ", user);
-
-        // Отправляем приветственное сообщение и запрашиваем дополнительную информацию
         const welcomeMessage = "Здравствуйте! Я помощник APARTMENTS95. С радостью помогу вам с арендой квартиры. До какой даты планируете проживание и сколько будет человек?";
 
-        client.sendMessage(`${normalizedWhatsNum}@c.us`, welcomeMessage);
-        
-        // Обновляем последние сообщения пользователя
-        user.lastMessages = [
-            ...user.lastMessages || [],
+        // Обновляем или создаем пользователя за одну операцию
+        await User.findOneAndUpdate(
+            { phone: phoneKey },
             {
-                role: "assistant",
-                content: welcomeMessage
-            }
-        ];
-        await user.save();
-        
-        res.status(200).json({ success: true });
+                $set: { "bookingDate.startDate": formattedDate },
+                $push: { lastMessages: { role: "assistant", content: welcomeMessage } }
+            },
+            { new: true, upsert: true }
+        );
+
+        // Отправка сообщения
+        client.sendMessage(phoneKey, welcomeMessage);
+
+        return res.status(200).json({ success: true });
     } catch (error) {
         console.error("Ошибка отправки сообщения:", error);
-        res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
