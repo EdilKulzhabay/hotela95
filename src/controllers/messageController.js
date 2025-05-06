@@ -904,7 +904,10 @@ const handleIncomingMessage = async (msg, client) => {
     
     // Обработка через GPT если не обработано специальными обработчиками
     try {
-        const answer = await gptResponse(message, user.lastMessages, prompt);
+        const answer = await gptResponse(
+            message, 
+            user.lastMessages, 
+            prompt + `${user} даты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент`);
         console.log("GPT ответ:", answer);
         
         if (answer.includes("client")) {
