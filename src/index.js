@@ -49,7 +49,8 @@ app.post("/api/test", async (req, res) => {
         }
 
         // Получаем форматированную дату через GPT
-        const prompt = "Преобразуй дату в формат YYYY-MM-DD";
+        const today = new Date().toISOString().split('T')[0];
+        const prompt = `Сегодня ${today}. Преобразуй дату в формат YYYY-MM-DD`;
         const formattedDate = await gptResponse(date, [], prompt);
 
         console.log("formattedDate = ", formattedDate);
