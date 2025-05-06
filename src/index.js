@@ -43,8 +43,10 @@ client.on("message", async (msg) => {
 app.post("/api/test", async (req, res) => {
     try {
         const { phone, date, whatsNum } = req.body;
+
+        console.log("req.body = ", req.body);
         
-        if (!phone || !date || !whatsNum) {
+        if (!phone || !date) {
             return res.status(400).json({ success: false, error: "Не все поля заполнены" });
         }
 
