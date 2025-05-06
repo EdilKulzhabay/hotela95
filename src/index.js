@@ -40,7 +40,7 @@ client.on("message", async (msg) => {
 });
 
 
-router.post("/api/test", async (req, res) => {
+app.post("/api/test", async (req, res) => {
     try {
         const { phone, date, whatsNum } = req.body;
         
