@@ -65,7 +65,7 @@ app.post("/api/test", async (req, res) => {
         await User.findOneAndUpdate(
             { phone: phoneKey },
             {
-                $set: { "bookingDate.startDate": formattedDate },
+                $set: { "bookingDate.startDate": formattedDate, last_message_date: today },
                 $push: { lastMessages: { role: "assistant", content: welcomeMessage } }
             },
             { new: true, upsert: true }

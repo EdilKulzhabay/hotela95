@@ -340,9 +340,11 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
             case 1: // Обработка запроса на бронирование с датами
                 try {
                     const [year, month, day] = data.checkin.split("-");
-                    const beginDate = `${day}.${month}.${year}`;
+                    const [beginYear, beginMonth, beginDay] = user.bookingDate.startDate.split("-");
+                    const beginDate = `${beginDay}.${beginMonth}.${beginYear}` || `${day}.${month}.${year}`;
                     const [year2, month2, day2] = data.checkout.split("-");
-                    const endDate = `${day2}.${month2}.${year2}`;
+                    const [endYear, endMonth, endDay] = user.bookingDate.endDate.split("-");
+                    const endDate = `${endDay}.${endMonth}.${endYear}` || `${day2}.${month2}.${year2}`;
 
                     // Получаем свободные квартиры
                     const apartmentsResponse = await getAvailableApartments(beginDate, endDate, data.guests);
