@@ -33,7 +33,7 @@ const calculateDaysBetweenDates = (startDate, endDate) => {
  * @returns {String} - дата в формате DD.MM.YYYY
  */
 const convertDateFormat = (dateString) => {
-    const [year, month, day] = dateString.split("-");
+    const [year, month, day] = dateString.split(".");
     return `${day}.${month}.${year}`;
 };
 
