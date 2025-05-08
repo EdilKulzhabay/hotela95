@@ -91,12 +91,16 @@ const getPrice = async (id, startDate, endDate) => {
 const createBookingLink = async (startDate, endDate, apartments) => {
     try {
 
-        const dataToLink = apartments.map(async (item) => ({
+        const promises = apartments.map(async (item) => ({
             apartment_id: item.id,
             apartment_title: item.title,
             amount: await getPrice(item.id, startDate, endDate),
             is_special_amount: false
         }));
+
+        // Ждем выполнения всех промисов
+        const dataToLink = await Promise.all(promises);
+
 
         console.log("dataToLink = ", dataToLink);
         
