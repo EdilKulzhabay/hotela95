@@ -24,8 +24,8 @@ const getAvailableApartments = async (startDate, endDate, guests = 1) => {
         console.log("guests = ", guests);
 
         const token = globalVar.getVar()
-        const beginDate = convertDateFormat(startDate);
-        const finishDate = convertDateFormat(endDate);
+        const beginDate = startDate
+        const finishDate = endDate
 
         console.log("beginDate = ", beginDate);
         console.log("finishDate = ", finishDate);
