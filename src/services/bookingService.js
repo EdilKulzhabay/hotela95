@@ -73,6 +73,8 @@ const createBookingLink = async (startDate, endDate, apartments) => {
             amount: item.price,
             is_special_amount: false
         }));
+
+        console.log("dataToLink = ", dataToLink);
         
         let link = await getLink(startDate, endDate, dataToLink);
         

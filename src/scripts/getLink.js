@@ -30,6 +30,12 @@ const getLink = async (startDate, endDate, apartments) => {
 
         const token = globalVar.getVar()
 
+        console.log("token = ", token);
+
+        console.log("startDate = ", startDate);
+        console.log("endDate = ", endDate);
+        console.log("apartments = ", apartments);
+
         const getLinkBody = {
             begin_date: startDate, 
             end_date: endDate, 
