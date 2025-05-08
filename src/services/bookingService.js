@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getLink } = require('../scripts/getLink');
+const { getLink, getToken } = require('../scripts/getLink');
 const { fetchBookings } = require('../scripts/fetchBookings');
 const { deleteBooking } = require('../scripts/deleteBooking');
 const { addBooking } = require('../scripts/addBooking');
@@ -15,12 +15,25 @@ const globalVar = require('../utils/globalVar');
  */
 const getAvailableApartments = async (startDate, endDate, guests = 1) => {
     try {
+        if (globalVar.getVar() === "") {
+            await getToken();
+        }
+
+        const token = globalVar.getVar()
         const beginDate = convertDateFormat(startDate);
         const finishDate = convertDateFormat(endDate);
         
         const response = await axios.get(
-            `${process.env.VACANT_APARTMENTS_API}humans=${guests}&begin_date=${beginDate}&end_date=${finishDate}`
+            `${process.env.VACANT_APARTMENTS_API}humans=${guests}&begin_date=${beginDate}&end_date=${finishDate}`,
+            {
+                headers: {
+                    "x-user-token": token,
+                    "Content-Type": "application/json"
+                }
+            }
         );
+
+        console.log("response = ", response);
         
         return {
             success: true,

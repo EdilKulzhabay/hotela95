@@ -20,7 +20,7 @@ const checkKaspiPayment = async (phone) => {
         }
         
         // Удаляем первую цифру, если это +7
-        const normalizedPhone = cleanPhone.startsWith('7') ? cleanPhone.slice(1) : cleanPhone;
+        const normalizedPhone = cleanPhone.startsWith('+') ? cleanPhone.slice(1) : cleanPhone;
         
         // Получаем результат от Kaspi сервиса
         const paymentAmount = await kaspiParser(normalizedPhone);

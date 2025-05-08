@@ -18,4 +18,5 @@ logs/
 
 # Файлы сессий и cookies
 src/cookies.json
+cookies.json
 *.session.json

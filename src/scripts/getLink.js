@@ -1,7 +1,7 @@
 const axios = require('axios');
 const globalVar = require('../utils/globalVar');
 
-const getToken = async () => {
+export const getToken = async () => {
     const response = await axios.post("https://realtycalendar.ru/v2/sign_in", 
         {
             username: process.env.REALTYCALENDAR_USERNAME,

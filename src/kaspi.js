@@ -5,6 +5,9 @@ const { default: axios } = require("axios");
 
 const COOKIES_PATH = './cookies.json';
 
+const KASPI_LOGIN = process.env.KASPI_LOGIN;
+const KASPI_PASSWORD = process.env.KASPI_PASSWORD;
+
 const sendKaspiRequest = async (cookies) => {
     const cookieString = Object.entries(cookies)
         .map(([key, value]) => `${key}=${value}`)
@@ -24,6 +27,9 @@ const sendKaspiRequest = async (cookies) => {
         services: ["7267"]
     };
 
+    console.log("cookieString = ", cookieString);
+    console.log("requestBody = ", requestBody);
+
     try {
         const response = await axios.post(
             'https://merchant.kaspi.kz/new/Operation/GetOperations',
@@ -41,12 +47,14 @@ const sendKaspiRequest = async (cookies) => {
                 }
             }
         );
+
+        console.log("response = ", response);
         console.log('Ответ от Kaspi.kz:', response.data.data);
         return response.data.data;
     } catch (error) {
         console.error('Ошибка запроса:', error.response ? error.response.data : error.message);
         if (error.response?.status === 401) {
-            return false;
+            return error;
         }
         throw error; // Пробрасываем ошибку дальше
     }
@@ -77,17 +85,17 @@ const authenticateAndGetCookies = async (page) => {
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await page.click('#Login');
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                await page.type('#Login', process.env.login);
+                await page.type('#Login', KASPI_LOGIN);
                 await page.click('#submit');
-                await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+                await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
                 console.log("login if");
             }
 
             const passwordInput = await page.$('#Password');
             if (passwordInput) {
-                await page.type('#Password', process.env.pass);
+                await page.type('#Password', KASPI_PASSWORD);
                 await page.click('#submit');
-                await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+                await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
                 console.log("password if");
             }
         } else {
@@ -95,7 +103,7 @@ const authenticateAndGetCookies = async (page) => {
         }
 
         const cookiesArray = await page.cookies();
-        console.log("line 95 cookiesArray = ", cookiesArray);
+        console.log("line 98 cookiesArray = ", cookiesArray);
         
         fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookiesArray, null, 2));
         return cookiesArray;
@@ -105,8 +113,30 @@ const authenticateAndGetCookies = async (page) => {
     }
 };
 
+const saveCookiesInGlobalCookies = async () => {
+    const cookiesArray = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
+    globalCookies.setSession_Token(cookiesArray.find(cookie => cookie.name === 'Session_Token')?.value);
+    globalCookies.setSecurity_Token(cookiesArray.find(cookie => cookie.name === 'Security_Token')?.value);
+    globalCookies.setAuth_Token(cookiesArray.find(cookie => cookie.name === 'Auth_Token')?.value);
+    globalCookies.setCSRF_Token(cookiesArray.find(cookie => cookie.name === 'CSRF_Token')?.value);
+}
+
 const kaspiParser = async (phone) => {
+
+    try {
+        const cookiesContent = fs.readFileSync(COOKIES_PATH, 'utf8');
+        if (!cookiesContent || cookiesContent.trim() === '' || cookiesContent === '[]') {
+            console.log('Файл cookies.json пуст или не содержит данных');
+        } else {
+            await saveCookiesInGlobalCookies();
+        }
+    } catch (error) {
+        console.error('Ошибка при чтении файла cookies.json:', error);
+        throw error;
+    }
     let cookieTokens = globalCookies.getGlobalCookes();
+    console.log("cookieTokens = ", cookieTokens);
+
     let cookies = {
         CSRF_Token: cookieTokens.CSRF_Token,
         Auth_Token: cookieTokens.Auth_Token,
