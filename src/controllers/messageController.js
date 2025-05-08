@@ -126,14 +126,18 @@ const handleApartmentSelection = async (user, message, client, chatId, clientNam
         };
         
         const apartmentData = {
-            amount: user.chooseApartment.price,
-            apartment_id: user.chooseApartment.id
+            amount: user.chooseApartment.amount,
+            apartment_id: user.chooseApartment.apartment_id
         };
+
+        console.log("userData = ", userData);
+        console.log("apartmentData = ", apartmentData);
+        
         
         const bookingResult = await addBooking(userData, apartmentData, clientName);
         
         if (bookingResult) {
-            const sum = user.chooseApartment.price * calculateDaysBetweenDates(
+            const sum = user.chooseApartment.amount * calculateDaysBetweenDates(
                 user.bookingDate.startDate, 
                 user.bookingDate.endDate
             );
@@ -154,9 +158,18 @@ const handleApartmentSelection = async (user, message, client, chatId, clientNam
             return true;
         }
     } else {
-        client.sendMessage(chatId, "Вы могли бы написать адрес квартиры которую выбрали");
-        updateLastMessages(user, "Вы могли бы написать адрес квартиры которую выбрали", "assistant");
-        user.waitAgreement = {status: true, what: {name: "chooseApartment2"}};
+        // client.sendMessage(chatId, "Вы могли бы написать цену квартиры которую выбрали");
+        // updateLastMessages(user, "Вы могли бы написать цену квартиры которую выбрали", "assistant");
+        // user.waitAgreement = {status: true, what: {name: "chooseApartment2"}};
+        // await user.save();
+        client.sendMessage(
+            process.env.ADMIN_GROUP_ID, 
+            `Клиенту ${user.clientName || "Неизвестный"} с номером '${chatId.slice(0, -5)}' нужно написать, не может оплатить по каспи`
+        );
+        
+        client.sendMessage(chatId, "В скором времени с вами свяжется менеджер");
+        updateLastMessages(user, "В скором времени с вами свяжется менеджер", "assistant");
+        
         await user.save();
         return true;
     }
@@ -400,25 +413,15 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                 
             case 3: // Выбор квартиры
                 try {
-                    if (data?.address) {
-                        // Поиск квартиры по адресу
-                        const apartments = await getAvailableApartments(
-                            user.bookingDate.startDate, 
-                            user.bookingDate.endDate
-                        );
+                    if (data?.price) {
                         
-                        if (!apartments.success) {
-                            client.sendMessage(chatId, "Не удалось найти квартиры для заданных дат");
-                            return true;
-                        }
-                        
-                        const chooseApartment = apartments.apartments.find(
-                            (item) => item.address.includes(data?.address)
+                        const chooseApartment = user.chooseApartments.find(
+                            (item) => item?.amount === Number(data?.price)
                         );
                         
                         if (chooseApartment) {
-                            client.sendMessage(chatId, `${chooseApartment.address}, вот на этот адрес, да?`);
-                            updateLastMessages(user, `${chooseApartment.address}, вот на этот адрес, да?`, "assistant");
+                            client.sendMessage(chatId, `Вам комнату за ${chooseApartment?.amount}, да?`);
+                            updateLastMessages(user, `Вам комнату за ${chooseApartment?.amount}, да?`, "assistant");
                             
                             user.chooseApartment = chooseApartment;
                             user.waitAgreement = {
@@ -451,36 +454,22 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                             return true;
                         }
                         
-                        // Получаем данные о выбранной квартире
-                        const apartments = await getAvailableApartments(
-                            user.bookingDate.startDate, 
-                            user.bookingDate.endDate
-                        );
-                        
-                        if (!apartments.success) {
-                            client.sendMessage(chatId, "Не удалось получить информацию о квартирах");
-                            return true;
-                        }
-                        
-                        const selectedApartmentId = user.chooseApartments[choiceIndex].apartment_id;
-                        const chooseApartment = apartments.apartments.find(
-                            (item) => item.id === selectedApartmentId
-                        );
+                        const chooseApartment = user.chooseApartments[choiceIndex];
                         
                         if (!chooseApartment) {
                             client.sendMessage(chatId, "Не удалось найти выбранную квартиру");
                             return true;
                         }
                         
-                        client.sendMessage(chatId, `${chooseApartment.address}, вот на этот адрес, да?`);
-                        updateLastMessages(user, `${chooseApartment.address}, вот на этот адрес, да?`, "assistant");
+                        client.sendMessage(chatId, `Вам комнату за ${chooseApartment?.amount}, да?`);
+                        updateLastMessages(user, `Вам комнату за ${chooseApartment?.amount}, да?`, "assistant");
                         
                         user.chooseApartment = chooseApartment;
                         user.waitAgreement = {
                             status: true, 
                             what: {
                                 name: "chooseApartment", 
-                                chooseApartmentNumber: data?.choice
+                                chooseApartmentNumber: chooseApartment?.amount
                             }
                         };
                         
@@ -920,7 +909,7 @@ const handleIncomingMessage = async (msg, client) => {
         const answer = await gptResponse(
             message, 
             user.lastMessages, 
-            prompt + `${user} даты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент`);
+            prompt + `${user} даты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент сегодня ${new Date().toISOString().split('T')[0]}`);
         console.log("GPT ответ:", answer);
         
         if (answer.includes("client")) {

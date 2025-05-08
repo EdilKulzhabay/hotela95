@@ -43,7 +43,7 @@ const getAvailableApartments = async (startDate, endDate, guests = 1) => {
             }
         );
 
-        console.log("response = ", response);
+        console.log("response = ", response.data.apartments);
         
         return {
             success: true,
@@ -59,27 +59,36 @@ const getAvailableApartments = async (startDate, endDate, guests = 1) => {
 };
 
 const getPrice = async (id, startDate, endDate) => {
-    if (globalVar.getVar() === "") {
-        await getToken();
-    }
-
-    const token = globalVar.getVar()
-
-    const response = await axios.get(
-        `https://realtycalendar.ru/v2/apartments/${id}/prices?begin_date=${startDate}&end_date=${endDate}`,
-        {
-            headers: {
-                "x-user-token": token,
-                "Content-Type": "application/json"
-            }
+    try {
+        if (globalVar.getVar() === "") {
+            await getToken();
         }
-    );
-    
 
-    const daysBetween = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-    const pricePerDay = Math.ceil(response.data.price / daysBetween);
-    return pricePerDay
-}
+        const token = globalVar.getVar();
+
+        console.log(`https://realtycalendar.ru/v2/apartments/${id}/price?begin_date=${startDate}&end_date=${endDate}`);
+        console.log("token = ", token);
+        
+        
+        const response = await axios.get(
+            `https://realtycalendar.ru/v2/apartments/${id}/price?begin_date=${startDate}&end_date=${endDate}`,
+            {
+                headers: {
+                    "x-user-token": token,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const daysBetween = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+        const pricePerDay = Math.ceil(response.data.price / daysBetween);
+        return pricePerDay;
+    } catch (error) {
+        console.error(`Ошибка получения цены для апартаментов ${id}:`, error.message);
+        // Возвращаем базовую цену или null в случае ошибки
+        return null;
+    }
+};
 
 /**
  * Создание ссылки для бронирования
@@ -103,7 +112,7 @@ const createBookingLink = async (startDate, endDate, apartments) => {
 
 
         console.log("dataToLink = ", dataToLink);
-        
+
         let link = await getLink(startDate, endDate, dataToLink);
         
         if (!link.success) {
