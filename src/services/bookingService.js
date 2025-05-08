@@ -58,6 +58,29 @@ const getAvailableApartments = async (startDate, endDate, guests = 1) => {
     }
 };
 
+const getPrice = async (id, startDate, endDate) => {
+    if (globalVar.getVar() === "") {
+        await getToken();
+    }
+
+    const token = globalVar.getVar()
+
+    const response = await axios.get(
+        `https://realtycalendar.ru/v2/apartments/${id}/prices?begin_date=${startDate}&end_date=${endDate}`,
+        {
+            headers: {
+                "x-user-token": token,
+                "Content-Type": "application/json"
+            }
+        }
+    );
+    
+
+    const daysBetween = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+    const pricePerDay = Math.ceil(response.data.price / daysBetween);
+    return pricePerDay
+}
+
 /**
  * Создание ссылки для бронирования
  * @param {String} startDate - дата заезда
@@ -67,10 +90,13 @@ const getAvailableApartments = async (startDate, endDate, guests = 1) => {
  */
 const createBookingLink = async (startDate, endDate, apartments) => {
     try {
+
+
+
         const dataToLink = apartments.map((item) => ({
             apartment_id: item.id,
             apartment_title: item.title,
-            amount: item.price,
+            amount: getPrice(item.id, startDate, endDate),
             is_special_amount: false
         }));
 
