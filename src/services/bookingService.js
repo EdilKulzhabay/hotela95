@@ -19,9 +19,19 @@ const getAvailableApartments = async (startDate, endDate, guests = 1) => {
             await getToken();
         }
 
+        console.log("startDate = ", startDate);
+        console.log("endDate = ", endDate);
+        console.log("guests = ", guests);
+
         const token = globalVar.getVar()
         const beginDate = convertDateFormat(startDate);
         const finishDate = convertDateFormat(endDate);
+
+        console.log("beginDate = ", beginDate);
+        console.log("finishDate = ", finishDate);
+
+        console.log(`${process.env.VACANT_APARTMENTS_API}humans=${guests}&begin_date=${beginDate}&end_date=${finishDate}`);
+        
         
         const response = await axios.get(
             `${process.env.VACANT_APARTMENTS_API}humans=${guests}&begin_date=${beginDate}&end_date=${finishDate}`,
