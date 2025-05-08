@@ -91,12 +91,10 @@ const getPrice = async (id, startDate, endDate) => {
 const createBookingLink = async (startDate, endDate, apartments) => {
     try {
 
-
-
-        const dataToLink = apartments.map((item) => ({
+        const dataToLink = apartments.map(async (item) => ({
             apartment_id: item.id,
             apartment_title: item.title,
-            amount: getPrice(item.id, startDate, endDate),
+            amount: await getPrice(item.id, startDate, endDate),
             is_special_amount: false
         }));
 
