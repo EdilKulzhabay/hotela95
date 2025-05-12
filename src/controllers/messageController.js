@@ -911,6 +911,8 @@ const handleIncomingMessage = async (msg, client) => {
             user.lastMessages, 
             prompt + `\n${user} \nдаты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент, сегодня ${new Date().toISOString().split('T')[0]}`
         );
+        console.log("propmt = ", prompt + `\n${user} \nдаты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент, сегодня ${new Date().toISOString().split('T')[0]}`);
+        
         console.log("GPT ответ:", answer);
         
         if (answer.includes("client")) {
