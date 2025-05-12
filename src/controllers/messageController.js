@@ -909,7 +909,8 @@ const handleIncomingMessage = async (msg, client) => {
         const answer = await gptResponse(
             message, 
             user.lastMessages, 
-            prompt + `${user} даты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент сегодня ${new Date().toISOString().split('T')[0]}`);
+            prompt + `\n${user} \nдаты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент, сегодня ${new Date().toISOString().split('T')[0]}`
+        );
         console.log("GPT ответ:", answer);
         
         if (answer.includes("client")) {
