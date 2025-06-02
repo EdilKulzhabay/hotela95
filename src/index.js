@@ -47,7 +47,7 @@ client.on("message_create", async (msg) => {
 });
 
 client.on("message", async (msg) => {
-    const user = await User.findOne({ phone: msg.to });
+    const user = await User.findOne({ phone: msg.from });
     if (user && user.status) {
         console.log("Пропускаем сообщение");
     } else {
