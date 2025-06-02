@@ -100,8 +100,8 @@ const authenticateAndGetCookies = async (page) => {
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await page.click('#Login');
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                // await page.type('#Login', KASPI_LOGIN);
-                await page.type('#Login', "7006837203");
+                await page.type('#Login', KASPI_LOGIN);
+                // await page.type('#Login', "7006837203");
                 await page.click('#submit');
                 await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
                 console.log("Логин введен");
