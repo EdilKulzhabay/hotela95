@@ -7,6 +7,10 @@ const UserSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
+        status: {
+            type: Boolean,
+            default: false,
+        },
         last_message_date: {
             type: Date,
             default: null,

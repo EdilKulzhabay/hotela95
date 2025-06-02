@@ -2,8 +2,16 @@ const { getBrowser } = require("./scripts/puppeteerManager");
 const fs = require('fs')
 const globalCookies = require("./globalCookies");
 const { default: axios } = require("axios");
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const COOKIES_PATH = './cookies.json';
+
+// Создаем пустой файл cookies.json, если его нет
+if (!fs.existsSync(COOKIES_PATH)) {
+    fs.writeFileSync(COOKIES_PATH, '[]');
+}
 
 const KASPI_LOGIN = process.env.KASPI_LOGIN;
 const KASPI_PASSWORD = process.env.KASPI_PASSWORD;
@@ -62,48 +70,57 @@ const sendKaspiRequest = async (cookies) => {
 
 const authenticateAndGetCookies = async (page) => {
     try {
+        console.log("Начинаем процесс авторизации...");
+        
         if (fs.existsSync(COOKIES_PATH)) {
             try {
                 const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH, 'utf8'));
+                console.log("Прочитаны существующие куки:", cookies);
                 await page.setCookie(...cookies);
             } catch (error) {
                 console.error("Ошибка чтения cookies.json. Перезаписываем файл...", error);
-                fs.writeFileSync(COOKIES_PATH, '[]'); // Перезаписываем пустым массивом
+                fs.writeFileSync(COOKIES_PATH, '[]');
             }
         }
 
+        console.log("Переходим на страницу авторизации...");
         await page.goto('https://merchant.kaspi.kz/new', { waitUntil: 'networkidle2' });
 
         const isLoggedIn = await page.evaluate(() => {
             return !!document.querySelector('a[href*="logout"]') || !!document.querySelector('.logout-button');
         });
 
+        console.log("Статус авторизации:", isLoggedIn ? "Уже авторизован" : "Требуется авторизация");
+
         if (!isLoggedIn) {
             console.log('Требуется авторизация.');
             const loginInput = await page.$('#Login');
             if (loginInput) {
+                console.log("Вводим логин...");
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await page.click('#Login');
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                await page.type('#Login', KASPI_LOGIN);
+                // await page.type('#Login', KASPI_LOGIN);
+                await page.type('#Login', "7006837203");
                 await page.click('#submit');
                 await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
-                console.log("login if");
+                console.log("Логин введен");
             }
 
             const passwordInput = await page.$('#Password');
             if (passwordInput) {
+                console.log("Вводим пароль...");
                 await page.type('#Password', KASPI_PASSWORD);
                 await page.click('#submit');
                 await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
-                console.log("password if");
+                console.log("Пароль введен");
             }
         } else {
             console.log('Вы уже авторизованы.');
         }
 
         const cookiesArray = await page.cookies();
-        console.log("line 98 cookiesArray = ", cookiesArray);
+        console.log("Получены куки:", cookiesArray);
         
         fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookiesArray, null, 2));
         return cookiesArray;
@@ -137,14 +154,19 @@ const kaspiParser = async (phone) => {
     let cookieTokens = globalCookies.getGlobalCookes();
     console.log("cookieTokens = ", cookieTokens);
 
-    let cookies = {
-        CSRF_Token: cookieTokens.CSRF_Token,
-        Auth_Token: cookieTokens.Auth_Token,
-        Security_Token: cookieTokens.Security_Token,
-        Session_Token: cookieTokens.Session_Token
-    };
+    let responseSendKaspiRequest = null;
 
-    let responseSendKaspiRequest = await sendKaspiRequest(cookies);
+    if (cookieTokens.CSRF_Token && cookieTokens.Auth_Token && cookieTokens.Security_Token && cookieTokens.Session_Token) {
+        let cookies = {
+            CSRF_Token: cookieTokens.CSRF_Token,
+            Auth_Token: cookieTokens.Auth_Token,
+            Security_Token: cookieTokens.Security_Token,
+            Session_Token: cookieTokens.Session_Token
+        };
+
+        responseSendKaspiRequest = await sendKaspiRequest(cookies);
+
+    }
 
     if (!responseSendKaspiRequest) {
         const browser = await getBrowser();
@@ -183,6 +205,12 @@ const kaspiParser = async (phone) => {
     if (responseSendKaspiRequest) {
         console.log("line 155 responseSendKaspiRequest = ", responseSendKaspiRequest);
         
+        // Проверяем, что responseSendKaspiRequest это массив
+        if (!Array.isArray(responseSendKaspiRequest)) {
+            console.log("responseSendKaspiRequest не является массивом:", responseSendKaspiRequest);
+            return null;
+        }
+        
         const clientPay = responseSendKaspiRequest.find((item) => {
             if (!item.parameters) return false;
             const numbers = item.parameters.match(/\d+/g)?.join('');
@@ -201,5 +229,5 @@ const kaspiParser = async (phone) => {
     return null;
 };
 
-// kaspiParser("77006837203")
+// kaspiParser("7006837203")
 module.exports = { kaspiParser };

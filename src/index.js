@@ -27,16 +27,30 @@ app.set('userModel', User);
 app.set('apartmentModel', Apartment);
 
 // Обработчики событий WhatsApp
-client.on('message_create', async (msg) => {
+client.on("message_create", async (msg) => {
     if (msg.fromMe) {
         const chatId = msg.to;
-        const message = msg.body;
-        await handleAdminCommands(message, chatId);
+        try {
+            if (msg.body.includes("Здравствуйте. Меня зовут")) {
+                await User.findOneAndUpdate(
+                    { phone: chatId },
+                    { $set: { status: true } },
+                    { new: true, upsert: true }
+                );
+            }
+        } catch (error) {
+            console.error("Ошибка при обработке message_create:", error);
+        }
     }
 });
 
 client.on("message", async (msg) => {
-    await handleIncomingMessage(msg, client);
+    const user = await User.findOne({ phone: msg.to });
+    if (user && user.status) {
+        console.log("Пропускаем сообщение");
+    } else {
+        await handleIncomingMessage(msg, client);
+    }
 });
 
 
