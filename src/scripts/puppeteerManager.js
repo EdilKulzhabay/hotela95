@@ -5,7 +5,7 @@ let browserInstance = null;
 const getBrowser = async () => {
     if (!browserInstance) {
         browserInstance = await puppeteer.launch({
-            headless: true, // Отключаем headless для диагностики
+            headless: false, // Отключаем headless для диагностики
             args: ["--no-sandbox", "--disable-setuid-sandbox"]
         });
     }

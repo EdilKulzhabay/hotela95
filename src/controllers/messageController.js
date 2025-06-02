@@ -261,6 +261,8 @@ const handleKaspiPayment = async (user, message, client, chatId) => {
         
         client.sendMessage(chatId, "В скором времени с вами свяжется менеджер");
         updateLastMessages(user, "В скором времени с вами свяжется менеджер", "assistant");
+
+        user.status = true;
         
         await user.save();
         return true;
@@ -288,7 +290,7 @@ const handlePaymentCheck = async (user, message, client, chatId) => {
     
     if (paymentResult.success) {
         // Получаем требуемую сумму из данных пользователя или устанавливаем минимальную
-        const requiredAmount = user.waitAgreement?.what?.sum || user.apartment?.amount || 20;
+        const requiredAmount = 10000;
         const validation = validatePaymentAmount(paymentResult.amount, requiredAmount, user.temporarySum);
         
         if (validation.isPaid) {

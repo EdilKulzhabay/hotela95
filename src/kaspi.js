@@ -60,9 +60,10 @@ const sendKaspiRequest = async (cookies) => {
         console.log('Ответ от Kaspi.kz:', response.data.data);
         return response.data.data;
     } catch (error) {
-        console.error('Ошибка запроса:', error.response ? error.response.data : error.message);
+        // console.error('Ошибка запроса:', error.response ? error.response.data : error.message);
+        console.log("Ошибка запроса");
         if (error.response?.status === 401) {
-            return error;
+            return false;
         }
         throw error; // Пробрасываем ошибку дальше
     }
@@ -168,6 +169,8 @@ const kaspiParser = async (phone) => {
 
     }
 
+    console.log("we in 172 line: ", responseSendKaspiRequest);
+    
     if (!responseSendKaspiRequest) {
         const browser = await getBrowser();
         let page;
@@ -203,8 +206,6 @@ const kaspiParser = async (phone) => {
     }
 
     if (responseSendKaspiRequest) {
-        console.log("line 155 responseSendKaspiRequest = ", responseSendKaspiRequest);
-        
         // Проверяем, что responseSendKaspiRequest это массив
         if (!Array.isArray(responseSendKaspiRequest)) {
             console.log("responseSendKaspiRequest не является массивом:", responseSendKaspiRequest);
@@ -229,5 +230,5 @@ const kaspiParser = async (phone) => {
     return null;
 };
 
-// kaspiParser("7006837203")
-module.exports = { kaspiParser };
+kaspiParser("7074947437")
+// module.exports = { kaspiParser };
