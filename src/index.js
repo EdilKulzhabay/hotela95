@@ -30,8 +30,10 @@ app.set('apartmentModel', Apartment);
 client.on("message_create", async (msg) => {
     if (msg.fromMe) {
         const chatId = msg.to;
+        console.log("msg.body = ", msg.body);
+        
         try {
-            if (msg.body.includes("Здравствуйте. Меня зовут")) {
+            if (msg.body.toLowerCase().includes("здравствуйте. меня зовут")) {
                 await User.findOneAndUpdate(
                     { phone: chatId },
                     { $set: { status: true } },
