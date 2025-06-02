@@ -230,5 +230,5 @@ const kaspiParser = async (phone) => {
     return null;
 };
 
-kaspiParser("7074947437")
-// module.exports = { kaspiParser };
+// kaspiParser("7074947437")
+module.exports = { kaspiParser };
