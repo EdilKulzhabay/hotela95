@@ -33,7 +33,19 @@ client.on("message_create", async (msg) => {
         console.log("msg.body = ", msg.body);
         
         try {
-            if (msg.body.toLowerCase().includes("здравствуйте. меня зовут")) {
+            const message = msg.body.toLowerCase().trim();
+            if (
+                message.includes("здравствуйте. меня зовут") ||
+                message.includes("здравствуйте! меня зовут") ||
+                message.includes("здравствуйте, меня зовут") ||
+                message.includes("здравствуйте меня зовут") ||
+                message.includes("здравствуйте.меня зовут") ||
+                message.includes("здравствуйте!меня зовут") ||
+                message.includes("здравствуйте,меня зовут") ||
+                message.includes("здравствуйте👋") ||
+                message.includes("салем👋") ||
+                message.includes("👋")
+            ) {
                 await User.findOneAndUpdate(
                     { phone: chatId },
                     { $set: { status: true } },
