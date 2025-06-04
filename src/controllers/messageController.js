@@ -706,7 +706,7 @@ const handleIncomingMessage = async (msg, client) => {
     const today = new Date();
     const lastMessageDateObj = lastMessageDate ? new Date(lastMessageDate) : null;
     
-    if (!lastMessageDate || lastMessageDateObj.toDateString() != today.toDateString()) {
+    if (!lastMessageDate || lastMessageDateObj.toDateString() != today.toDateString() || message.toLocaleLowerCase().includes("пишу из приложения 2гис.")) {
         client.sendMessage(chatId, startMessage);
         updateLastMessages(user, message, "user");
         updateLastMessages(user, startMessage, "assistant");
