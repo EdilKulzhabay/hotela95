@@ -7,6 +7,7 @@ const { depo, kaspiText, startMessage } = require('../const/messages');
 const { checkKaspiPayment, validatePaymentAmount } = require('../services/paymentService');
 const { getAvailableApartments, createBookingLink, addBooking, deleteBooking } = require('../services/bookingService');
 const axios = require('axios');
+const FormData = require('form-data');
 const { kaspiParser } = require('../kaspi');
 const globalVar = require('../utils/globalVar');
 
@@ -22,36 +23,90 @@ const DELETION_DELAY = 300000; // 5 минут в миллисекундах
  */
 const fetchBookings = async (phone) => {
     try {
-        // Формируем номер телефона в нужном формате
-        const formattedPhone = phone.replace(/\D/g, '').slice(-10);
-        if (!formattedPhone || formattedPhone.length < 10) {
-            return { success: false, error: 'Неверный формат номера телефона' };
+        if (!phone) {
+            return { success: false, error: "Номер телефона не указан" };
         }
         
-        // Делаем запрос к API для получения информации о бронировании
-        const response = await axios.get(`${process.env.BOOKING_API_URL}/bookings/phone/${formattedPhone}`, {
-            headers: {
-                'Authorization': `Bearer ${process.env.BOOKING_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            }
+        const authResponse = await axios.post('https://realtycalendar.ru/v2/sign_in', {
+            username: process.env.REALTYCALENDAR_USERNAME,
+            password: process.env.REALTYCALENDAR_PASSWORD
         });
+
+        // console.log("authResponse = ", authResponse);
+
+        if (!authResponse?.data?.auth_token) {
+            return { success: false, error: "Не удалось получить токен авторизации" };
+        }
+
+        const token = authResponse.data.auth_token;
+
+        const bookingsResponse = await axios.get(
+            'https://realtycalendar.ru/v2/event_calendars/?begin_date=2025-06-08&end_date=2025-07-23&statuses[]=booked&statuses[]=request&apartment_ids=231339,231347',
+            {
+                headers: {
+                    'X-User-Token': token,
+                },
+            }
+        );
+
+        console.log("bookingsResponse = ", bookingsResponse.data);
         
-        if (response.data && response.data.bookings && response.data.bookings.length > 0) {
-            // Находим самое свежее бронирование
-            const sortedBookings = response.data.bookings.sort((a, b) => 
-                new Date(b.created_at) - new Date(a.created_at)
-            );
-            
-            return {
-                success: true,
-                booked: sortedBookings[0]
+        // Проверка наличия бронирований
+        if (!bookingsResponse.data?.items || bookingsResponse.data.items.length === 0) {
+            return { success: false, error: "Бронирования не найдены" };
+        }
+
+        // Нормализуем номер телефона для поиска (убираем пробелы и специальные символы)
+        const normalizePhone = (phoneNumber) => {
+            if (!phoneNumber) return '';
+            return phoneNumber.replace(/[\s\-\(\)\+]/g, '');
+        };
+
+        const searchPhone = normalizePhone(phone);
+        console.log("Ищем номер телефона:", searchPhone);
+        console.log("Ищем номер телефона:", phone);
+
+        // Ищем бронирование по номеру телефона в массиве items
+        let foundBooking = null;
+        
+        for (const item of bookingsResponse.data.items) {
+            if (item.events && Array.isArray(item.events)) {
+                for (const event of item.events) {
+                    if (event.client && event.client.phone) {
+                        const clientPhone = normalizePhone(event.client.phone);
+                        console.log("Сравниваем с:", clientPhone, "из события:", event.id);
+                        
+                        if (clientPhone === searchPhone) {
+                            foundBooking = {
+                                ...event,
+                                apartment_id: item.apartment_id,
+                                room_id: item.room_id
+                            };
+                            console.log("Найдено бронирование:", foundBooking);
+                            break;
+                        }
+                    }
+                }
+                if (foundBooking) break;
+            }
+        }
+
+        if (!foundBooking) {
+            console.log("Бронирование не найдено для номера:", phone);
+            return { 
+                success: false, 
+                error: `Бронирование с номером телефона ${phone} не найдено` 
             };
         }
-        
-        return { success: false, error: 'Бронирование не найдено' };
+
+        // Возвращаем данные о найденной брони
+        return {
+            success: true,
+            booking: foundBooking
+        };
     } catch (error) {
-        console.error('Ошибка при получении бронирований:', error);
-        return { success: false, error: error.message || 'Ошибка при получении бронирований' };
+        console.error('Ошибка получения бронирований:', error.message);
+        return { success: false, error: error.message };
     }
 };
 
@@ -422,8 +477,8 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                         );
                         
                         if (chooseApartment) {
-                            client.sendMessage(chatId, `Вам комнату за ${chooseApartment?.amount}, да?`);
-                            updateLastMessages(user, `Вам комнату за ${chooseApartment?.amount}, да?`, "assistant");
+                            client.sendMessage(chatId, `Вам номер  за ${chooseApartment?.amount}, да?`);
+                            updateLastMessages(user, `Вам номер  за ${chooseApartment?.amount}, да?`, "assistant");
                             
                             user.chooseApartment = chooseApartment;
                             user.waitAgreement = {
@@ -463,8 +518,8 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                             return true;
                         }
                         
-                        client.sendMessage(chatId, `Вам комнату за ${chooseApartment?.amount}, да?`);
-                        updateLastMessages(user, `Вам комнату за ${chooseApartment?.amount}, да?`, "assistant");
+                        client.sendMessage(chatId, `Вам номер  за ${chooseApartment?.amount}, да?`);
+                        updateLastMessages(user, `Вам номер  за ${chooseApartment?.amount}, да?`, "assistant");
                         
                         user.chooseApartment = chooseApartment;
                         user.waitAgreement = {
@@ -593,7 +648,7 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                     const isBooked = await fetchBookings(phone);
                     
                     if (isBooked?.success) {
-                        const apartmentId = isBooked.booked.apartment_id;
+                        const apartmentId = isBooked.booking.apartment_id;
                         const apartment = await Apartment.findOne({apartment_id: apartmentId});
                         
                         if (!apartment) {
@@ -620,10 +675,10 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                                 { _id: user._id },
                                 {
                                     $set: {
-                                        "paid.apartment_id": isBooked.booked.apartment_id,
-                                        chooseApartment: isBooked.booked,
-                                        apartments: [...user.apartments, isBooked.booked],
-                                        apartment: isBooked.booked,
+                                        "paid.apartment_id": isBooked.booking.apartment_id,
+                                        chooseApartment: isBooked.booking,
+                                        apartments: [...user.apartments, isBooked.booking],
+                                        apartment: isBooked.booking,
                                         lastMessages: [
                                             ...user.lastMessages, 
                                             ...(apartment.links && apartment.links.length > 0 ? [{role: "assistant", content: apartment.links[0]}] : []),
@@ -682,7 +737,7 @@ const handleIncomingMessage = async (msg, client) => {
         return;
     }
     
-    // Поиск или создание пользователя
+    // Создание нового пользователя если не существует
     let user = await User.findOne({ phone: chatId });
     
     // Проверка блокировки пользователя
@@ -696,41 +751,220 @@ const handleIncomingMessage = async (msg, client) => {
     // Создание нового пользователя если не существует
     if (!user) {
         user = new User({ phone: chatId, last_message_date: new Date() });
-        client.sendMessage(chatId, startMessage);
+        
+        // Добавляем сообщение пользователя в историю для анализа
         updateLastMessages(user, message, "user");
-        updateLastMessages(user, startMessage, "assistant");
         await user.save();
-        return;
-    } 
+        
+        // Проверяем через GPT что написал новый пользователь
+        console.log("Новый пользователь, проверяю сообщение через GPT...");
+        try {
+            const gptAnswer = await gptResponse(
+                message, 
+                user.lastMessages, 
+                prompt + `\n${user} \nдаты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент, сегодня ${new Date().toISOString().split('T')[0]}`
+            );
+            
+            console.log("GPT ответ для нового пользователя:", gptAnswer);
+            
+            // Если GPT распознал команду бронирования, обрабатываем
+            if (gptAnswer.includes("забронировал admin")) {
+                console.log("Новый пользователь с командой бронирования, обрабатываю...");
+                
+                // Обрабатываем команду бронирования
+                const phone = chatId?.match(/\d+/g)?.join('');
+                
+                try {
+                    const isBooked = await fetchBookings(phone);
+                    
+                    if (isBooked?.success) {
+                        const sum = isBooked.booking.amount * calculateDaysBetweenDates(
+                            isBooked.booking.begin_date, 
+                            isBooked.booking.end_date
+                        );
+                        
+                        await client.sendMessage(chatId, `Стоимость проживания ${sum} + депозит`);
+                        updateLastMessages(user, `Стоимость проживания ${sum} + депозит`, "assistant");
+                        
+                        await client.sendMessage(chatId, depo);
+                        updateLastMessages(user, depo, "assistant");
+                        
+                        await client.sendMessage(chatId, "Можете ли провести оплату по каспи?");
+                        updateLastMessages(user, "Можете ли провести оплату по каспи?", "assistant");
+                        
+                        await User.findOneAndUpdate(
+                            { _id: user._id },
+                            {
+                                $set: {
+                                    "paid.apartment_id": isBooked.booking.apartment_id,
+                                    chooseApartment: isBooked.booking,
+                                    waitAgreement: {status: true, what: {name: "mayToKaspi", sum}},
+                                    apartments: [...user.apartments, isBooked.booking],
+                                    apartment: isBooked.booking
+                                }
+                            },
+                            { new: true }
+                        );
+                    } else {
+                        client.sendMessage(
+                            chatId, 
+                            "К сожалению мы не смогли найти вашу бронь. Отправьте номер в формате '+7 777 777 77 77' по которому забронировали квартиру, чтобы мы могли проверить"
+                        );
+                        
+                        updateLastMessages(
+                            user, 
+                            "К сожалению мы не смогли найти вашу бронь. Отправьте номер в формате '+7 777 777 77 77' по которому забронировали квартиру, чтобы мы могли проверить", 
+                            "assistant"
+                        );
+                        
+                        user.specialPhone = true;
+                        await user.save();
+                    }
+                } catch (error) {
+                    console.error("Ошибка при обработке бронирования для нового пользователя:", error);
+                    client.sendMessage(chatId, "Произошла ошибка при обработке бронирования. Пожалуйста, повторите попытку позже");
+                    updateLastMessages(user, "Произошла ошибка при обработке бронирования. Пожалуйста, повторите попытку позже", "assistant");
+                }
+                
+                return;
+            } else {
+                // GPT не распознал команду бронирования, отправляем стартовое сообщение
+                console.log("Новый пользователь без команды бронирования, отправляю приветствие...");
+                client.sendMessage(chatId, startMessage);
+                updateLastMessages(user, startMessage, "assistant");
+                await user.save();
+                return;
+            }
+        } catch (gptError) {
+            console.error("Ошибка при анализе сообщения нового пользователя:", gptError);
+            // В случае ошибки GPT отправляем стартовое сообщение
+            client.sendMessage(chatId, startMessage);
+            updateLastMessages(user, startMessage, "assistant");
+            await user.save();
+            return;
+        }
+    }
     
-    // Проверка нужно ли отправить приветственное сообщение (новый день)
+    // Проверка нужно ли отправить приветственное сообщение для существующих пользователей (новый день)
     const lastMessageDate = user.last_message_date;
     const today = new Date();
     const lastMessageDateObj = lastMessageDate ? new Date(lastMessageDate) : null;
     
-    const isNewUser = !lastMessageDate;
     const isNewDay = lastMessageDateObj && lastMessageDateObj.toDateString() !== today.toDateString();
     const isFrom2GIS = message.toLowerCase().includes("пишу из приложения 2гис.");
     
-    console.log("Проверка стартового сообщения:");
-    console.log("- isNewUser:", isNewUser);
+    console.log("Проверка стартового сообщения для существующего пользователя:");
     console.log("- isNewDay:", isNewDay);
     console.log("- isFrom2GIS:", isFrom2GIS);
     console.log("- lastMessageDate:", lastMessageDate);
     console.log("- today:", today.toDateString());
     
-    if (isNewUser || isNewDay || isFrom2GIS) {
-        console.log("Отправляю стартовое сообщение для:", chatId);
-        client.sendMessage(chatId, startMessage);
-        updateLastMessages(user, message, "user");
-        updateLastMessages(user, startMessage, "assistant");
-        user.last_message_date = today;
-        await user.save();
-        return;
+    // Если это новый день или сообщение из 2GIS, сначала проверяем через GPT
+    if (isNewDay || isFrom2GIS) {
+        console.log("Проверяю сообщение существующего пользователя через GPT...");
+        
+        // Добавляем сообщение пользователя в историю для GPT
+        if (message) {
+            updateLastMessages(user, message, "user");
+            await user.save();
+        }
+        
+        try {
+            const gptAnswer = await gptResponse(
+                message, 
+                user.lastMessages, 
+                prompt + `\n${user} \nдаты хранятся в bookingDate если даты меньше сегодняшнего дня то узнай на какие даты хочет заселиться клиент, сегодня ${new Date().toISOString().split('T')[0]}`
+            );
+            
+            console.log("GPT ответ для существующего пользователя:", gptAnswer);
+            
+            // Если GPT распознал команду бронирования, обрабатываем
+            if (gptAnswer.includes("забронировал admin")) {
+                console.log("Существующий пользователь с командой бронирования, обрабатываю...");
+                user.last_message_date = today;
+                await user.save();
+                
+                // Обрабатываем команду бронирования
+                const phone = chatId?.match(/\d+/g)?.join('');
+                
+                try {
+                    const isBooked = await fetchBookings(phone);
+                    
+                    if (isBooked?.success) {
+                        const sum = isBooked.booking.amount * calculateDaysBetweenDates(
+                            isBooked.booking.begin_date, 
+                            isBooked.booking.end_date
+                        );
+                        
+                        await client.sendMessage(chatId, `Стоимость проживания ${sum} + депозит`);
+                        updateLastMessages(user, `Стоимость проживания ${sum} + депозит`, "assistant");
+                        
+                        await client.sendMessage(chatId, depo);
+                        updateLastMessages(user, depo, "assistant");
+                        
+                        await client.sendMessage(chatId, "Можете ли провести оплату по каспи?");
+                        updateLastMessages(user, "Можете ли провести оплату по каспи?", "assistant");
+                        
+                        await User.findOneAndUpdate(
+                            { _id: user._id },
+                            {
+                                $set: {
+                                    "paid.apartment_id": isBooked.booking.apartment_id,
+                                    chooseApartment: isBooked.booking,
+                                    waitAgreement: {status: true, what: {name: "mayToKaspi", sum}},
+                                    apartments: [...user.apartments, isBooked.booking],
+                                    apartment: isBooked.booking
+                                }
+                            },
+                            { new: true }
+                        );
+                    } else {
+                        client.sendMessage(
+                            chatId, 
+                            "К сожалению мы не смогли найти вашу бронь. Отправьте номер в формате '+7 777 777 77 77' по которому забронировали квартиру, чтобы мы могли проверить"
+                        );
+                        
+                        updateLastMessages(
+                            user, 
+                            "К сожалению мы не смогли найти вашу бронь. Отправьте номер в формате '+7 777 777 77 77' по которому забронировали квартиру, чтобы мы могли проверить", 
+                            "assistant"
+                        );
+                        
+                        user.specialPhone = true;
+                        await user.save();
+                    }
+                } catch (error) {
+                    console.error("Ошибка при обработке бронирования для существующего пользователя:", error);
+                    client.sendMessage(chatId, "Произошла ошибка при обработке бронирования. Пожалуйста, повторите попытку позже");
+                    updateLastMessages(user, "Произошла ошибка при обработке бронирования. Пожалуйста, повторите попытку позже", "assistant");
+                }
+                
+                return;
+            } else {
+                // GPT не распознал команду бронирования, отправляем стартовое сообщение
+                console.log("Существующий пользователь без команды бронирования, отправляю приветствие...");
+                client.sendMessage(chatId, startMessage);
+                updateLastMessages(user, startMessage, "assistant");
+                user.last_message_date = today;
+                await user.save();
+                return;
+            }
+        } catch (gptError) {
+            console.error("Ошибка при анализе сообщения существующего пользователя:", gptError);
+            // В случае ошибки GPT отправляем стартовое сообщение
+            client.sendMessage(chatId, startMessage);
+            updateLastMessages(user, startMessage, "assistant");
+            user.last_message_date = today;
+            await user.save();
+            return;
+        }
     }
     
-    // Добавляем сообщение пользователя в историю
-    if (message) {
+    // Добавляем сообщение пользователя в историю только если оно еще не было добавлено
+    const lastUserMessage = user.lastMessages?.[user.lastMessages.length - 1];
+    const messageAlreadyAdded = lastUserMessage?.role === "user" && lastUserMessage?.content === message;
+    
+    if (message && !messageAlreadyAdded) {
         updateLastMessages(user, message, "user");
         await user.save();
     }
@@ -806,7 +1040,7 @@ const handleIncomingMessage = async (msg, client) => {
             const isBooked = await fetchBookings(phone);
             
             if (isBooked?.success) {
-                const apartmentId = isBooked.booked.apartment_id;
+                const apartmentId = isBooked.booking.apartment_id;
                 const apartment = await Apartment.findOne({apartment_id: apartmentId});
                 
                 if (!apartment) {
@@ -832,10 +1066,10 @@ const handleIncomingMessage = async (msg, client) => {
                         { _id: user._id },
                         {
                             $set: {
-                                "paid.apartment_id": isBooked.booked.apartment_id,
-                                chooseApartment: isBooked.booked,
-                                apartments: [...user.apartments, isBooked.booked],
-                                apartment: isBooked.booked
+                                "paid.apartment_id": isBooked.booking.apartment_id,
+                                chooseApartment: isBooked.booking,
+                                apartments: [...user.apartments, isBooked.booking],
+                                apartment: isBooked.booking
                             }
                         },
                         { new: true }
@@ -870,9 +1104,9 @@ const handleIncomingMessage = async (msg, client) => {
             const isBooked = await fetchBookings(phone);
             
             if (isBooked?.success) {
-                const sum = isBooked.booked.amount * calculateDaysBetweenDates(
-                    isBooked.booked.begin_date, 
-                    isBooked.booked.end_date
+                const sum = isBooked.booking.amount * calculateDaysBetweenDates(
+                    isBooked.booking.begin_date, 
+                    isBooked.booking.end_date
                 );
                 
                 await client.sendMessage(chatId, `Стоимость проживания ${sum} + депозит`);
@@ -888,11 +1122,11 @@ const handleIncomingMessage = async (msg, client) => {
                     { _id: user._id },
                     {
                         $set: {
-                            "paid.apartment_id": isBooked.booked.apartment_id,
-                            chooseApartment: isBooked.booked,
+                            "paid.apartment_id": isBooked.booking.apartment_id,
+                            chooseApartment: isBooked.booking,
                             waitAgreement: {status: true, what: {name: "mayToKaspi", sum}},
-                            apartments: [...user.apartments, isBooked.booked],
-                            apartment: isBooked.booked
+                            apartments: [...user.apartments, isBooked.booking],
+                            apartment: isBooked.booking
                         }
                     },
                     { new: true }
@@ -968,9 +1202,9 @@ const handleIncomingMessage = async (msg, client) => {
                         const isBooked = await fetchBookings(phone);
                         
                         if (isBooked?.success) {
-                            const sum = isBooked.booked.amount * calculateDaysBetweenDates(
-                                isBooked.booked.begin_date, 
-                                isBooked.booked.end_date
+                            const sum = isBooked.booking.amount * calculateDaysBetweenDates(
+                                isBooked.booking.begin_date, 
+                                isBooked.booking.end_date
                             );
                             
                             await client.sendMessage(chatId, `Стоимость проживания ${sum} + депозит`);
@@ -986,11 +1220,11 @@ const handleIncomingMessage = async (msg, client) => {
                                 { _id: user._id },
                                 {
                                     $set: {
-                                        "paid.apartment_id": isBooked.booked.apartment_id,
-                                        chooseApartment: isBooked.booked,
+                                        "paid.apartment_id": isBooked.booking.apartment_id,
+                                        chooseApartment: isBooked.booking,
                                         waitAgreement: {status: true, what: {name: "mayToKaspi", sum}},
-                                        apartments: [...user.apartments, isBooked.booked],
-                                        apartment: isBooked.booked
+                                        apartments: [...user.apartments, isBooked.booking],
+                                        apartment: isBooked.booking
                                     }
                                 },
                                 { new: true }
