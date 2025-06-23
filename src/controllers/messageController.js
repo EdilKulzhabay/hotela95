@@ -671,8 +671,10 @@ const handleIncomingMessage = async (msg, client) => {
     const clientName = msg._data.notifyName;
     const message = msg.body;
     
+    console.log("=== НАЧАЛО ОБРАБОТКИ СООБЩЕНИЯ ===");
     console.log("message:", message);
     console.log("chatId:", chatId);
+    console.log("clientName:", clientName);
     
     // Проверка базовых команд
     if (message.toLocaleLowerCase().includes("restart")) {
@@ -706,7 +708,19 @@ const handleIncomingMessage = async (msg, client) => {
     const today = new Date();
     const lastMessageDateObj = lastMessageDate ? new Date(lastMessageDate) : null;
     
-    if (!lastMessageDate || lastMessageDateObj.toDateString() != today.toDateString() || message.toLocaleLowerCase().includes("пишу из приложения 2гис.")) {
+    const isNewUser = !lastMessageDate;
+    const isNewDay = lastMessageDateObj && lastMessageDateObj.toDateString() !== today.toDateString();
+    const isFrom2GIS = message.toLowerCase().includes("пишу из приложения 2гис.");
+    
+    console.log("Проверка стартового сообщения:");
+    console.log("- isNewUser:", isNewUser);
+    console.log("- isNewDay:", isNewDay);
+    console.log("- isFrom2GIS:", isFrom2GIS);
+    console.log("- lastMessageDate:", lastMessageDate);
+    console.log("- today:", today.toDateString());
+    
+    if (isNewUser || isNewDay || isFrom2GIS) {
+        console.log("Отправляю стартовое сообщение для:", chatId);
         client.sendMessage(chatId, startMessage);
         updateLastMessages(user, message, "user");
         updateLastMessages(user, startMessage, "assistant");
@@ -907,6 +921,7 @@ const handleIncomingMessage = async (msg, client) => {
     }
     
     // Обработка через GPT если не обработано специальными обработчиками
+    console.log("Начинаю обработку через GPT...");
     try {
         const answer = await gptResponse(
             message, 
@@ -918,6 +933,7 @@ const handleIncomingMessage = async (msg, client) => {
         
         if (answer.includes("client")) {
             // Ответ для клиента
+            console.log("Отправляю сообщение клиенту:", answer.replace(" client", ""));
             await client.sendMessage(chatId, answer.replace(" client", ""));
             updateLastMessages(user, answer.replace(" client", ""), "assistant");
             await user.save();
@@ -1022,6 +1038,8 @@ const handleIncomingMessage = async (msg, client) => {
         await client.sendMessage(chatId, "Извините, у меня возникли проблемы с обработкой вашего запроса. Попробуйте еще раз позже.");
         await user.save();
     }
+    
+    console.log("=== КОНЕЦ ОБРАБОТКИ СООБЩЕНИЯ ===");
 };
 
 module.exports = {
