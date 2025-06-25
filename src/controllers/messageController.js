@@ -1262,10 +1262,17 @@ const handleIncomingMessage = async (msg, client) => {
                 await user.save();
             }
         } else {
-            // Если ответ не содержит меток, отправляем сообщение об ошибке
-            await client.sendMessage(chatId, "Извините, я не понял ваш запрос. Уточните, пожалуйста!");
-            updateLastMessages(user, "Извините, я не понял ваш запрос. Уточните, пожалуйста", "assistant");
-            await user.save();
+            // Если ответ не содержит меток, но содержит текст, отправляем его как сообщение клиенту
+            if (answer && answer.trim().length > 0) {
+                console.log("Отправляю ответ GPT без меток как сообщение клиенту:", answer);
+                await client.sendMessage(chatId, answer);
+                updateLastMessages(user, answer, "assistant");
+                await user.save();
+            } else {
+                await client.sendMessage(chatId, "Извините, я не понял ваш запрос. Уточните, пожалуйста!");
+                updateLastMessages(user, "Извините, я не понял ваш запрос. Уточните, пожалуйста!", "assistant");
+                await user.save();
+            }
         }
     } catch (gptError) {
         console.error("Ошибка при получении ответа от GPT:", gptError);
