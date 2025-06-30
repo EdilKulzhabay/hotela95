@@ -28,9 +28,10 @@ app.set('apartmentModel', Apartment);
 
 // Обработчики событий WhatsApp
 client.on("message_create", async (msg) => {
+    // Обрабатываем только исходящие сообщения от бота (fromMe = true)
     if (msg.fromMe) {
         const chatId = msg.to;
-        console.log("msg.body = ", msg.body);
+        console.log("Исходящее сообщение от бота:", msg.body);
         
         try {
             const message = msg.body.toLowerCase().trim();
@@ -59,11 +60,16 @@ client.on("message_create", async (msg) => {
 });
 
 client.on("message", async (msg) => {
-    const user = await User.findOne({ phone: msg.from });
-    if (user && user.status) {
-        console.log("Пропускаем сообщение");
-    } else {
-        await handleIncomingMessage(msg, client);
+    // Обрабатываем только входящие сообщения (fromMe = false)
+    if (!msg.fromMe) {
+        console.log("Входящее сообщение от пользователя:", msg.body);
+        
+        const user = await User.findOne({ phone: msg.from });
+        if (user && user.status) {
+            console.log("Пропускаем сообщение - пользователь уже в статусе");
+        } else {
+            await handleIncomingMessage(msg, client);
+        }
     }
 });
 

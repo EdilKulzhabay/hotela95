@@ -731,6 +731,12 @@ const handleIncomingMessage = async (msg, client) => {
     console.log("chatId:", chatId);
     console.log("clientName:", clientName);
     
+    // Защита от обработки пустых сообщений
+    if (!message || message.trim().length === 0) {
+        console.log("Пропускаем пустое сообщение");
+        return;
+    }
+    
     // Проверка базовых команд
     if (message.toLocaleLowerCase().includes("restart")) {
         await User.findOneAndDelete({phone: chatId});
@@ -750,7 +756,47 @@ const handleIncomingMessage = async (msg, client) => {
     
     // Создание нового пользователя если не существует
     if (!user) {
-        user = new User({ phone: chatId, last_message_date: new Date() });
+        try {
+            // Используем findOneAndUpdate с upsert для избежания ошибки дублирования
+            user = await User.findOneAndUpdate(
+                { phone: chatId },
+                { 
+                    $setOnInsert: { 
+                        phone: chatId, 
+                        last_message_date: new Date(),
+                        lastMessages: [],
+                        bookingDate: { startDate: "", endDate: "", personsKol: "" },
+                        chooseApartments: [],
+                        chooseApartment: {},
+                        apartment: {},
+                        apartments: [],
+                        waitAgreement: { status: false, what: {} },
+                        paid: { apartment_id: "", status: false },
+                        additionalPrompt: false,
+                        waitFIO: false,
+                        specialPhone: false,
+                        specialPhoneForInstruction: false,
+                        temporarySum: 0,
+                        isGandon: false,
+                        status: false
+                    }
+                },
+                { 
+                    new: true, 
+                    upsert: true 
+                }
+            );
+            
+            console.log("Пользователь создан или найден:", user.phone);
+        } catch (error) {
+            console.error("Ошибка при создании/поиске пользователя:", error);
+            // Если ошибка - пытаемся найти существующего пользователя
+            user = await User.findOne({ phone: chatId });
+            if (!user) {
+                console.error("Критическая ошибка: не удалось создать или найти пользователя");
+                return;
+            }
+        }
         
         // Добавляем сообщение пользователя в историю для анализа
         updateLastMessages(user, message, "user");
