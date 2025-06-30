@@ -725,11 +725,19 @@ const handleIncomingMessage = async (msg, client) => {
     const chatId = msg.from;
     const clientName = msg._data.notifyName;
     const message = msg.body;
+    const messageType = msg.type;
     
     console.log("=== НАЧАЛО ОБРАБОТКИ СООБЩЕНИЯ ===");
     console.log("message:", message);
+    console.log("messageType:", messageType);
     console.log("chatId:", chatId);
     console.log("clientName:", clientName);
+    
+    // Фильтруем нежелательные типы сообщений
+    if (messageType !== 'chat' && messageType !== 'image' && messageType !== 'document') {
+        console.log(`Пропускаем сообщение типа: ${messageType}`);
+        return;
+    }
     
     // Защита от обработки пустых сообщений
     if (!message || message.trim().length === 0) {

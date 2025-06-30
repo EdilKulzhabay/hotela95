@@ -62,7 +62,12 @@ client.on("message_create", async (msg) => {
 client.on("message", async (msg) => {
     // Обрабатываем только входящие сообщения (fromMe = false)
     if (!msg.fromMe) {
-        console.log("Входящее сообщение от пользователя:", msg.body);
+        console.log("=== ВХОДЯЩЕЕ СООБЩЕНИЕ ===");
+        console.log("Тип сообщения:", msg.type);
+        console.log("Текст сообщения:", msg.body);
+        console.log("От пользователя:", msg.from);
+        console.log("Имя:", msg._data.notifyName);
+        console.log("========================");
         
         const user = await User.findOne({ phone: msg.from });
         if (user && user.status) {
