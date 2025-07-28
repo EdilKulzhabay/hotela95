@@ -33,7 +33,7 @@ const deleteBooking = async (booking) => {
         
         // Запрос на удаление брони
         const deleteResponse = await axios.delete(
-            `https://realtycalendar.ru/api/v1/bookings/${booking.id}`,
+            `https://realtycalendar.ru/v2/event_calendars/${booking.id}`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,
