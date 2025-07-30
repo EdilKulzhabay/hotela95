@@ -433,8 +433,8 @@ const handleGptCommand = async (data, user, client, chatId, clientName) => {
                     const apartmentsResponse = await getAvailableApartments(beginDate, endDate, data.guests);
 
                     if (!apartmentsResponse.success || !apartmentsResponse.apartments.length) {
-                        client.sendMessage(chatId, `С ${data.checkin} по ${data.checkout} нет свободных квартир`);
-                        updateLastMessages(user, `С ${data.checkin} по ${data.checkout} нет свободных квартир`, "assistant");
+                        client.sendMessage(chatId, `С ${data.checkin} по ${data.checkout} нет свободных номеров`);
+                        updateLastMessages(user, `С ${data.checkin} по ${data.checkout} нет свободных номеров`, "assistant");
                         await user.save();
                         return true;
                     }
@@ -756,8 +756,8 @@ const handleIncomingMessage = async (msg, client) => {
     
     // Проверка блокировки пользователя
     if (user && user?.isGandon) {
-        client.sendMessage(chatId, "Здравствуйте, к сожалению в данный момент нет свободных квартир.");
-        updateLastMessages(user, "Здравствуйте, к сожалению в данный момент нет свободных квартир.", "assistant");
+        client.sendMessage(chatId, "Здравствуйте, к сожалению в данный момент нет свободных номеров.");
+        updateLastMessages(user, "Здравствуйте, к сожалению в данный момент нет свободных номеров.", "assistant");
         await user.save();
         return;
     }
